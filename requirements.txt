@@ -1,0 +1,11 @@
+numpy==1.26.0
+pandas
+matplotlib
+seaborn
+scikit-learn
+torch
+fastapi
+streamlit
+uvicorn
+shap
+imbalanced-learn
