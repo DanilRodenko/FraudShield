@@ -9,3 +9,4 @@ streamlit
 uvicorn
 shap
 imbalanced-learn
+xgboost
