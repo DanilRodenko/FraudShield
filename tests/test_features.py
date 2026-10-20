@@ -1,8 +1,14 @@
 import pandas as pd
 import pytest
 
-from app.features import add_age, add_distance_km, add_online_flag, add_time_features
-
+from app.features import (
+    add_age,
+    add_amt_vs_card_mean,
+    add_distance_km,
+    add_online_flag,
+    add_time_features,
+    add_velocity,
+)
 
 # --- distance: known answer on real cities ----------------------------------
 
@@ -65,3 +71,34 @@ def test_does_not_modify_input():
     df = pd.DataFrame({"category": ["shopping_net"]})
     add_online_flag(df)
     assert "is_online" not in df.columns   # column must not appear in the original df
+
+
+# --- per-card history: rows deliberately SHUFFLED to catch sorting bugs -----
+
+def _card_history():
+    # One card, amounts 10/20/30/500 in time order, but stored out of order
+    return pd.DataFrame({
+        "cc_num": [1, 1, 1, 1],
+        "amt": [500, 10, 30, 20],
+        "trans_date_trans_time": ["2020-01-01 13:00", "2020-01-01 10:00",
+                                  "2020-01-01 12:00", "2020-01-01 10:30"],
+    })
+
+
+def test_card_mean_uses_only_past():
+    result = add_amt_vs_card_mean(_card_history())
+    # Original row order is kept: row 0 is the 500 fraud, row 1 is the first txn
+    assert pd.isna(result["card_mean_amt"].iloc[1])           # no history yet
+    assert result["card_mean_amt"].iloc[0] == pytest.approx(20)  # mean(10, 20, 30)
+    assert result["amt_ratio"].iloc[0] == pytest.approx(25)      # 500 / 20
+
+
+def test_velocity_counts_previous_only():
+    result = add_velocity(_card_history())
+    # 10:00 -> nothing before it
+    assert result["txn_count_1h"].iloc[1] == 0
+    # 10:30 -> one txn (10:00) within the last hour
+    assert result["txn_count_1h"].iloc[3] == 1
+    # 13:00 -> only 12:00 within 1h; all three earlier ones within 24h
+    assert result["txn_count_1h"].iloc[0] == 0
+    assert result["txn_count_24h"].iloc[0] == 3

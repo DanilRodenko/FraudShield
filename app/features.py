@@ -56,3 +56,43 @@ def add_distance_km(df: pd.DataFrame) -> pd.DataFrame:
     # 6371 = Earth's mean radius in km
     df["distance_km"] = 2 * 6371 * np.arcsin(np.sqrt(a))
     return df
+
+
+def add_amt_vs_card_mean(df: pd.DataFrame) -> pd.DataFrame:
+    """Adds `card_mean_amt` (mean of this card's PREVIOUS amounts) and
+    `amt_ratio` = amt / card_mean_amt. First transaction of a card -> NaN."""
+    df = df.copy()
+    df["trans_date_trans_time"] = pd.to_datetime(df["trans_date_trans_time"])
+    # "Previous" only makes sense once rows are in time order within each card
+    df = df.sort_values(["cc_num", "trans_date_trans_time"])
+
+    # shift(1) excludes the current transaction -> no leakage from the present/future
+    df["card_mean_amt"] = df.groupby("cc_num")["amt"].transform(
+        lambda s: s.shift(1).expanding().mean()
+    )
+    df["amt_ratio"] = df["amt"] / df["card_mean_amt"]
+
+    df = df.sort_index()  # restore original row order for the caller
+    return df
+
+
+def add_velocity(df: pd.DataFrame) -> pd.DataFrame:
+    """Adds `txn_count_1h` and `txn_count_24h`: number of this card's
+    PREVIOUS transactions in the last 1h / 24h (current one excluded)."""
+    df = df.copy()
+    df["trans_date_trans_time"] = pd.to_datetime(df["trans_date_trans_time"])
+    df = df.sort_values(["cc_num", "trans_date_trans_time"])
+
+    for window, col in [("1h", "txn_count_1h"), ("24h", "txn_count_24h")]:
+        # Time-based window per card: counts rows in (t - window, t], current included
+        counts = (
+            df.groupby("cc_num")
+            .rolling(window, on="trans_date_trans_time")["amt"]
+            .count()
+        )
+        # Result comes back in the same (card, time) order as df -> align by position.
+        # Subtract 1 to exclude the current transaction itself.
+        df[col] = counts.to_numpy().astype(int) - 1
+
+    df = df.sort_index()  # restore original row order
+    return df
