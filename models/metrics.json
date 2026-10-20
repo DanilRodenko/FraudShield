@@ -1,6 +1,6 @@
 {
   "model": "xgboost",
-  "trained_at": "2026-10-20T18:31:04+00:00",
+  "trained_at": "2026-10-20T19:28:55+00:00",
   "features": [
     "amt",
     "card_mean_amt",
@@ -15,9 +15,24 @@
   ],
   "n_fit_rows": 1296675,
   "test_rows": 555719,
+  "test_frauds": 2145,
   "test_fraud_rate": 0.0039,
   "test_metrics": {
     "pr_auc": 0.7252,
     "roc_auc": 0.9879
+  },
+  "threshold": {
+    "value": 0.02,
+    "chosen_on": "validation, minimum cost of errors (notebooks/03_threshold.ipynb)",
+    "cost_fn": 530,
+    "cost_fp": 10,
+    "test": {
+      "tp": 1889,
+      "fp": 9548,
+      "fn": 256,
+      "tn": 544026,
+      "precision": 0.1652,
+      "recall": 0.8807
+    }
   }
 }

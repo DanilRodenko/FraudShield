@@ -7,10 +7,15 @@ import pandas as pd
 
 from app.data import load_data, split_xy
 from app.features import FEATURE_COLS, build_features
-from app.metrics import evaluate
+from app.metrics import evaluate, threshold_metrics
 from app.models import make_xgb
 
 MODELS_DIR = Path("models")
+
+# Chosen on validation in notebooks/03_threshold.ipynb (minimum cost of errors)
+THRESHOLD = 0.02
+COST_FN = 530  # missed fraud: average fraud amount (EDA, Q3)
+COST_FP = 10   # false alert: review + customer friction (assumption)
 
 
 def main():
@@ -31,6 +36,10 @@ def main():
     test_scores = model.predict_proba(X_test)[:, 1]
     test_metrics = evaluate(y_test, test_scores)
 
+    # Business-level numbers at the chosen threshold
+    test_at_threshold = threshold_metrics(y_test, test_scores, THRESHOLD)
+    print(f"test @ {THRESHOLD}:", test_at_threshold)
+
     print("test:", test_metrics)
 
     # --- Save artifacts ------------------------------------------------------
@@ -43,9 +52,18 @@ def main():
         "features": FEATURE_COLS,
         "n_fit_rows": len(X_fit),
         "test_rows": len(X_test),
+        "test_frauds": int(y_test.sum()),
         "test_fraud_rate": round(float(y_test.mean()), 4),
         "test_metrics": test_metrics,
+        "threshold": {
+            "value": THRESHOLD,
+            "chosen_on": "validation, minimum cost of errors (notebooks/03_threshold.ipynb)",
+            "cost_fn": COST_FN,
+            "cost_fp": COST_FP,
+            "test": test_at_threshold,
+        },
     }
+
     (MODELS_DIR / "metrics.json").write_text(json.dumps(report, indent=2))
     print(f"saved model + metrics to {MODELS_DIR}/")
 
