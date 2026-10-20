@@ -1,0 +1,23 @@
+{
+  "model": "xgboost",
+  "trained_at": "2026-10-20T18:31:04+00:00",
+  "features": [
+    "amt",
+    "card_mean_amt",
+    "amt_ratio",
+    "age",
+    "hour",
+    "is_night",
+    "is_online",
+    "distance_km",
+    "txn_count_1h",
+    "txn_count_24h"
+  ],
+  "n_fit_rows": 1296675,
+  "test_rows": 555719,
+  "test_fraud_rate": 0.0039,
+  "test_metrics": {
+    "pr_auc": 0.7252,
+    "roc_auc": 0.9879
+  }
+}
