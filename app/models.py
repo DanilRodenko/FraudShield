@@ -25,20 +25,26 @@ def make_tree():
 
 
 def make_xgb():
-    # XGBoost handles NaN natively -> no pipeline needed
+    # XGBoost handles NaN natively. Params chosen on validation (see notebook 02):
+    # shallower trees + smaller steps -> smallest train/val gap of all models
     return XGBClassifier(
-        n_estimators=100,
-        learning_rate=0.1,
+        n_estimators=500,
+        learning_rate=0.05,
+        max_depth=4,
+        min_child_weight=5,
         eval_metric="logloss",
         random_state=42,
     )
 
 
 def make_lgbm():
-    # LightGBM handles NaN natively; verbose=-1 silences training logs
+    # LightGBM is unstable on this imbalance with defaults (val PR-AUC 0.64);
+    # regularised params below bring it to 0.80
     return LGBMClassifier(
-        n_estimators=100,
-        learning_rate=0.1,
+        n_estimators=500,
+        learning_rate=0.05,
+        num_leaves=15,
+        min_child_samples=100,
         random_state=42,
         verbose=-1,
     )
