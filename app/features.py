@@ -96,3 +96,28 @@ def add_velocity(df: pd.DataFrame) -> pd.DataFrame:
 
     df = df.sort_index()  # restore original row order
     return df
+
+
+FEATURE_COLS = [
+    "amt",
+    "card_mean_amt",
+    "amt_ratio",
+    "age",
+    "hour",
+    "is_night",
+    "is_online",
+    "distance_km",
+    "txn_count_1h",
+    "txn_count_24h",
+]
+
+
+def build_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Runs all feature functions in order and returns the enriched DataFrame."""
+    df = add_time_features(df)      # + hour, is_night
+    df = add_online_flag(df)        # + is_online
+    df = add_age(df)                # + age
+    df = add_distance_km(df)        # + distance_km
+    df = add_amt_vs_card_mean(df)   # + card_mean_amt, amt_ratio
+    df = add_velocity(df)           # + txn_count_1h, txn_count_24h
+    return df
