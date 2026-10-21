@@ -1,0 +1,8 @@
+# Everything for training, notebooks and tests (not installed on Streamlit Cloud)
+-r requirements.txt
+lightgbm
+shap
+matplotlib
+pytest
+jupyter
+ipykernel

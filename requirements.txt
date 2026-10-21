@@ -1,12 +1,7 @@
-numpy==1.26.0
-pandas
-matplotlib
-seaborn
-scikit-learn
-torch
-fastapi
-streamlit
-uvicorn
-shap
-imbalanced-learn
-xgboost
+# Runtime dependencies for the Streamlit app (pinned to match the trained model)
+streamlit==1.66.1
+pandas==3.0.6
+numpy==2.4.6
+xgboost==3.2.0
+scikit-learn==1.9.1
+joblib==1.6.0
