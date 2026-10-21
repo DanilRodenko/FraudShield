@@ -2,6 +2,21 @@ import pandas as pd
 import xgboost as xgb
 
 
+# Human-readable names for the UI and the agent
+FEATURE_LABELS = {
+    "amt": "Transaction amount",
+    "card_mean_amt": "Card's usual amount",
+    "amt_ratio": "Amount vs card's usual",
+    "age": "Cardholder age",
+    "hour": "Hour of day",
+    "is_night": "Night-time (22:00–03:59)",
+    "is_online": "Online purchase",
+    "distance_km": "Distance from home, km",
+    "txn_count_1h": "Card transactions in last 1h",
+    "txn_count_24h": "Card transactions in last 24h",
+}
+
+
 def shap_values(model, X: pd.DataFrame) -> pd.DataFrame:
     """Per-feature SHAP contributions for each row (in log-odds), plus `base_value`.
     Row sum = model's log-odds for that row -> contributions fully explain the score."""
