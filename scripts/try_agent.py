@@ -3,6 +3,9 @@ import json
 import joblib
 import pandas as pd
 from dotenv import load_dotenv
+from pathlib import Path
+
+from app.agent.guardrails import validate
 
 from app.agent.agent import investigate
 from app.agent.retrieval import PolicyRetriever, load_rules
@@ -25,3 +28,9 @@ print("\nTOOLS CALLED:")
 for a in result["audit"]:
     print(f"  step {a['step']}: {a['tool']}({a['args']})")
 print("\nNOTE:\n", result["note"])
+
+
+check = validate(result["note"], result["audit"], Path("docs/fraud_policy.md").read_text())
+print("\nGUARDRAILS:", "PASS" if check["ok"] else "FAIL")
+for e in check["errors"]:
+    print("  -", e)
