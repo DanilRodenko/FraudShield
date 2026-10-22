@@ -69,6 +69,10 @@ class ToolBox:
                 for r in reasons
             ],
             "features": {FEATURE_LABELS[c]: _clean(row.iloc[0][c]) for c in FEATURE_COLS},
+            "policy_minimum_action": {
+                "action": "escalate" if score >= HIGH_PRIORITY else "review" if score >= self.threshold else "no_action",
+                "rule": "R7",
+            },
         }
 
     # --- Tool 3 ------------------------------------------------------------
