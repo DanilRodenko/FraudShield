@@ -8,6 +8,10 @@ import streamlit as st
 from app.explain import FEATURE_LABELS, top_reasons
 from app.features import FEATURE_COLS
 
+from app.agent.agent import investigate
+from app.agent.guardrails import validate
+from app.agent.retrieval import PolicyRetriever, load_rules
+from app.agent.tools import ToolBox
 
 # --- Loading (cached: runs once per server, not on every click) ---------------
 @st.cache_resource
@@ -107,3 +111,60 @@ with right:
         value = "no history" if pd.isna(r["value"]) else f"{r['value']:,.2f}"
         st.write(f"- **{label}** = {value} → impact **{r['impact']:+.2f}**")
     st.caption("Impact is in log-odds: positive values push towards fraud.")
+
+
+# --- AI investigator ---------------------------------------------------------------
+@st.cache_resource
+def load_retriever() -> PolicyRetriever:
+    return PolicyRetriever(load_rules())
+
+
+@st.cache_data
+def load_policy_text() -> str:
+    return Path("docs/fraud_policy.md").read_text()
+
+
+st.subheader("AI investigator")
+st.caption("Drafts a note from the model output and the review policy. Recommendation only — the analyst decides.")
+
+# Streamlit reruns the script on every click, so results are kept per transaction in session_state
+investigations = st.session_state.setdefault("investigations", {})
+
+if st.button("🔎 Investigate with AI"):
+    toolbox = ToolBox(df, model, load_retriever(), threshold)
+    result, problem = None, None
+    with st.spinner("Agent is checking the transaction, the model and the policy..."):
+        try:
+            result = investigate(selected, toolbox)
+        except ValueError as e:  # missing API key
+            problem = f"AI investigator is not configured: {e}"
+        except Exception as e:  # network / rate limit: report it, never crash the page
+            problem = f"Agent call failed ({type(e).__name__}). Try again in a minute."
+    # Messages are shown after the spinner: anything drawn inside it disappears when it closes
+    if problem:
+        st.warning(problem)
+    else:
+        check = validate(result["note"], result["audit"], load_policy_text())
+        investigations[selected] = {"result": result, "check": check}
+
+if selected in investigations:
+    result = investigations[selected]["result"]
+    check = investigations[selected]["check"]
+
+    if check["ok"]:
+        st.success(f"Recommendation: **{check['recommendation']}** · all guardrail checks passed")
+        # Escape "$": Streamlit markdown treats text between two $ signs as a LaTeX formula
+        st.markdown(check["note"].replace("$", r"\$").replace("\n", "  \n"))
+    else:
+        # A note that failed validation is not shown as a finding
+        st.error("The agent's note failed validation and is not shown as a finding.")
+        for err in check["errors"]:
+            st.write(f"- {err}")
+        if check["note"]:
+            with st.expander("Unvalidated draft (for debugging)"):
+                st.text(check["note"])
+
+    with st.expander(f"Audit log · {len(result['audit'])} tool calls · status: {result['status']}"):
+        for a in result["audit"]:
+            st.markdown(f"**Step {a['step']} · {a['tool']}** `{a['args']}`")
+            st.json(a["result"], expanded=False)
